@@ -1,0 +1,5 @@
+# DS_Store ingored
+.DS_Store
+
+# IDE trash ingored
+.idea/*
