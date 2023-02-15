@@ -3,3 +3,6 @@
 
 # IDE trash ingored
 .idea/*
+
+# Temproraly ignoring .venv
+.venv/
