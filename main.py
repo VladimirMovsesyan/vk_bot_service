@@ -72,6 +72,13 @@ def user_database_handler(event, vk_session, user_id, user_vk):
     if not user_role_check(db, user_id, "client"):
         sql_execute_query(db, f"INSERT INTO clients VALUES ({user_id}, '{user_vk[0]}', '{user_vk[1]}')")
 
+    user_command_handler(event, vk_session, user_id, db)
+
+    # closing database connection
+    db.close()
+
+
+def user_command_handler(event, vk_session, user_id, db):
     # TODO: Add errors handler
     # adding new author to database
     if (event.obj["message"]["text"].split())[0] == '/add_author':
@@ -84,9 +91,6 @@ def user_database_handler(event, vk_session, user_id, user_vk):
             sql_execute_query(db, f"INSERT INTO authors VALUES ({author_id}, "
                                   f"'{author_response[0]['first_name']}', "
                                   f"'{author_response[0]['last_name']}')")
-
-    # closing database connection
-    db.close()
 
 
 def main():
