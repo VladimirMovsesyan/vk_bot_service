@@ -1,3 +1,12 @@
+# store secret keys
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+TOKEN = os.getenv("TOKEN")
+CLUB_ID = os.getenv("CLUB_ID")
+
 # vk_api
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -95,8 +104,8 @@ def user_command_handler(event, vk_session, user_id, db):
 
 def main():
     vk_session = vk_api.VkApi(
-        token='')
-    long_poll = VkBotLongPoll(vk_session, '')
+        token=TOKEN)
+    long_poll = VkBotLongPoll(vk_session, CLUB_ID)
 
     for event in long_poll.listen():
         # message data

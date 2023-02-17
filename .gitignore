@@ -6,3 +6,6 @@
 
 # Temproraly ignoring .venv
 .venv/
+
+# dotenv
+.env
