@@ -26,7 +26,6 @@ class DataBase:
                 passwd=user_password,
                 database=db_name
             )
-            print(type(self.db))
             print("MySQL Database connection successful")
         except Error as err:
             print(f"Error: '{err}'")
@@ -53,81 +52,6 @@ class DataBase:
 
     def user_role_check(self, user_id: int, role: str) -> bool:
         return True if self.sql_read_query(f'SELECT {role}_id FROM {role} WHERE {role}_id = {user_id}') else False
-
-    def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
-        _, author_id = (event.obj["message"]["text"].split())
-
-        # check if user is admin
-        if self.user_role_check(event.obj["message"]["from_id"], "admin") and \
-                not self.user_role_check(author_id, "author"):
-            self.sql_execute_query(f"INSERT INTO author VALUES ({author_id})")
-
-    def get_authors(self, vk_session: vk_api.vk_api.VkApi, user_id: int) -> None:
-        # check if user is admin
-        if self.user_role_check(user_id, "admin"):
-            vk_session.get_api().messages.send(
-                user_id=user_id,
-                random_id=get_random_id(),
-                message=str(self.sql_read_query("SELECT * FROM author"))
-            )
-
-    def delete_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
-        _, author_id = (event.obj["message"]["text"].split())
-
-        # check if user is admin
-        if self.user_role_check(event.obj["message"]["from_id"], "admin") and self.user_role_check(author_id, "author"):
-            self.sql_execute_query(f"DELETE FROM author WHERE author_id = {author_id}")
-
-    def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
-        _, admin_id = (event.obj["message"]["text"].split())
-
-        # check if user is admin
-        if self.user_role_check(event.obj["message"]["from_id"], "admin") and \
-                not self.user_role_check(admin_id, "admin"):
-            self.sql_execute_query(f"INSERT INTO admin VALUES ({admin_id})")
-
-    def get_admins(self, vk_session: vk_api.vk_api.VkApi, user_id: int) -> None:
-        # check if user is admin
-        if self.user_role_check(user_id, "admin"):
-            vk_session.get_api().messages.send(
-                user_id=user_id,
-                random_id=get_random_id(),
-                message=str(self.sql_read_query("SELECT * FROM admin"))
-            )
-
-    def delete_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
-        _, admin_id = (event.obj["message"]["text"].split())
-
-        # check if user is admin
-        if self.user_role_check(event.obj["message"]["from_id"], "admin") and self.user_role_check(admin_id, "admin"):
-            self.sql_execute_query(f"DELETE FROM admin WHERE admin_id = {admin_id}")
-
-    def create_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
-        _, client_id, author_id = (event.obj["message"]["text"].split())
-
-        # TODO: Add handler of unique connection
-        # check if user is admin
-        if self.user_role_check(event.obj["message"]["from_id"], "admin"):
-            self.sql_execute_query(f"INSERT INTO connection(client_id, author_id) VALUES({client_id}, {author_id})")
-
-    def get_connections(self, vk_session: vk_api.vk_api.VkApi, user_id: int) -> None:
-        # check if user is admin
-        if self.user_role_check(user_id, "admin"):
-            vk_session.get_api().messages.send(
-                user_id=user_id,
-                random_id=get_random_id(),
-                message=str(self.sql_read_query("SELECT * FROM connection"))
-            )
-
-    def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
-        _, client_id, author_id = (event.obj["message"]["text"].split())
-
-        # check if user is admin
-        if self.user_role_check(event.obj["message"]["from_id"], "admin"):
-            self.sql_execute_query(f"DELETE FROM connection WHERE client_id = {client_id} AND author_id = {author_id}")
-
-    def disconnect(self, user_id: int) -> None:
-        self.sql_execute_query(f"DELETE FROM connection WHERE client_id = {user_id} OR author_id = {user_id}")
 
     def is_connected(self, user_id: int) -> bool:
         return True if self.sql_read_query(f"SELECT client_id, author_id FROM connection WHERE client_id = {user_id} "
@@ -196,25 +120,134 @@ class VkBot:
         # TODO: DELETE DEBUG INFO
         command = (event.obj["message"]["text"].split())[0]
         if command == '/add_author':
-            db.add_author(event)
+            self.add_author(event, db)
         elif command == '/authors':
-            db.get_authors(self.vk_session, event.obj["message"]["from_id"])
+            self.get_authors(event, db)
         elif command == '/del_author':
-            db.delete_author(event)
+            self.delete_author(event, db)
         elif command == '/add_admin':
-            db.add_admin(event)
+            self.add_admin(event, db)
         elif command == '/admins':
-            db.get_admins(self.vk_session, event.obj["message"]["from_id"])
+            self.get_admins(event, db)
         elif command == '/del_admin':
-            db.delete_admin(event)
+            self.delete_admin(event, db)
         elif command == '/add_connection':
-            db.create_connection(event)
+            self.create_connection(event, db)
         elif command == '/connections':
-            db.get_connections(self.vk_session, event.obj["message"]["from_id"])
+            self.get_connections(event, db)
         elif command == '/del_connection':
-            db.delete_connection(event)
+            self.delete_connection(event, db)
         elif command == '/disconnect':
-            db.disconnect(event.obj["message"]["from_id"])
+            self.disconnect(event, db)
+
+    # commands
+    def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        _, author_id = (event.obj["message"]["text"].split())
+
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin") and \
+                not db.user_role_check(author_id, "author"):
+            db.sql_execute_query(f'INSERT INTO author VALUES ({author_id})')
+            self.echo(message=f'Автор с {author_id} был добавлен!', user_id=event.obj["message"]["from_id"])
+        else:
+            if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+                self.echo(message=f'Автор с {author_id} уже существовал!', user_id=event.obj["message"]["from_id"])
+            else:
+                self.echo(message=f'У вас недостаточно прав для этой команды!',
+                          user_id=event.obj["message"]["from_id"])
+
+    def get_authors(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+            self.echo(message='Список авторов:', user_id=event.obj["message"]["from_id"])
+            self.echo(message=str(db.sql_read_query('SELECT * FROM author')), user_id=event.obj["message"]["from_id"])
+        else:
+            self.echo(message='У вас недостаточно прав для этой команды!', user_id=event.obj["message"]["from_id"])
+
+    def delete_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        _, author_id = (event.obj["message"]["text"].split())
+
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin") and db.user_role_check(author_id, "author"):
+            db.sql_execute_query(f'DELETE FROM author WHERE author_id = {author_id}')
+            self.echo(message=f'Автор {author_id} был удален!', user_id=event.obj["message"]["from_id"])
+        else:
+            if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+                self.echo(message=f'Автора {author_id} не существует!', user_id=event.obj["message"]["from_id"])
+            else:
+                self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        _, admin_id = (event.obj["message"]["text"].split())
+
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin") and \
+                not db.user_role_check(admin_id, "admin"):
+            db.sql_execute_query(f'INSERT INTO admin VALUES ({admin_id})')
+            self.echo(message=f'Администратор {admin_id} был добавлен!', user_id=admin_id)
+        else:
+            if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+                self.echo(message=f'Администратор {admin_id} уже существует!', user_id=admin_id)
+            else:
+                self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def get_admins(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+            self.echo(message=f'Список администраторов:', user_id=event.obj["message"]["from_id"])
+            self.echo(message=str(db.sql_read_query('SELECT * FROM admin')), user_id=event.obj["message"]["from_id"])
+        else:
+            self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def delete_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        _, admin_id = (event.obj["message"]["text"].split())
+
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin") and db.user_role_check(admin_id, "admin"):
+            db.sql_execute_query(f'DELETE FROM admin WHERE admin_id = {admin_id}')
+            self.echo(message=f'Администратор {admin_id} был удален!', user_id=admin_id)
+        else:
+            if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+                self.echo(message=f'Администратора {admin_id} не существует!', user_id=admin_id)
+            else:
+                self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def create_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        _, client_id, author_id = (event.obj["message"]["text"].split())
+
+        # TODO: Add handler of unique connection
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+            db.sql_execute_query(f'INSERT INTO connection(client_id, author_id) VALUES({client_id}, {author_id})')
+            self.echo(message=f'Связь между клиентом: {client_id} и автором: {author_id} установлена!',
+                      user_id=event.obj["message"]["from_id"])
+        else:
+            self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def get_connections(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+            self.echo(message='Список установленных соединений:', user_id=event.obj["message"]["from_id"])
+            self.echo(message=str(db.sql_read_query('SELECT * FROM connection')),
+                      user_id=event.obj["message"]["from_id"])
+        else:
+            self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        _, client_id, author_id = (event.obj["message"]["text"].split())
+
+        # check if user is admin
+        if db.user_role_check(event.obj["message"]["from_id"], "admin"):
+            db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {client_id} AND author_id = {author_id}')
+            self.echo(message='Связь между клиентом: {client_id} и автором: {author_id} прервана!',
+                      user_id=event.obj["message"]["from_id"])
+        else:
+            self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
+
+    def disconnect(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {event.obj["message"]["from_id"]} OR '
+                             f'author_id = {event.obj["message"]["from_id"]}')
+        self.echo('Вы отключились от чата!', user_id=event.obj["message"]["from_id"])
 
     # TODO: Rename
     def echo(self, message: str, user_id: int) -> None:
