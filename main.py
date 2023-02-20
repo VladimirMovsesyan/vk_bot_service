@@ -107,8 +107,10 @@ class VkBot:
         if not db.user_role_check(event.obj["message"]["from_id"], "user"):
             db.sql_execute_query(f'INSERT INTO user VALUES ({event.obj["message"]["from_id"]})')
 
-        self.user_command_handler(event, db)
+        if event.obj["message"]["text"]:
+            self.user_command_handler(event, db)
 
+        # sending message to other member of dialog if it exists
         if db.is_connected(event.obj["message"]["from_id"]):
             self.echo(event.obj["message"]["text"], db.get_companion(event.obj["message"]["from_id"]))
 
@@ -131,10 +133,19 @@ class VkBot:
             '/del_connection': self.delete_connection,
             '/disconnect': self.disconnect,
         }
-        commands_dict[command](event, db)
+        if command in commands_dict:
+            commands_dict[command](event, db)
+
+    def invalid_command(self, event: vk_api.bot_longpoll.VkBotMessageEvent, valid_command: str):
+        self.echo(message=f'Неверно использована команда, верное использование:\n' + valid_command,
+                  user_id=event.obj["message"]["from_id"])
 
     # commands
     def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) < 2:
+            self.invalid_command(event, '/add_author id_автора')
+            return
+
         _, author_id = (event.obj["message"]["text"].split())
 
         # check if user is admin
@@ -158,6 +169,10 @@ class VkBot:
             self.echo(message='У вас недостаточно прав для этой команды!', user_id=event.obj["message"]["from_id"])
 
     def delete_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) < 2:
+            self.invalid_command(event, '/del_author id_автора')
+            return
+
         _, author_id = (event.obj["message"]["text"].split())
 
         # check if user is admin
@@ -171,6 +186,10 @@ class VkBot:
                 self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
     def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) < 2:
+            self.invalid_command(event, '/add_admin id_администратора')
+            return
+
         _, admin_id = (event.obj["message"]["text"].split())
 
         # check if user is admin
@@ -193,6 +212,10 @@ class VkBot:
             self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
     def delete_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) < 2:
+            self.invalid_command(event, '/del_admin id_администратора')
+            return
+
         _, admin_id = (event.obj["message"]["text"].split())
 
         # check if user is admin
@@ -206,6 +229,10 @@ class VkBot:
                 self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
     def create_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) < 3:
+            self.invalid_command(event, '/add_connection id_клиента id_автора')
+            return
+
         _, client_id, author_id = (event.obj["message"]["text"].split())
 
         # TODO: Add handler of unique connection
@@ -227,6 +254,10 @@ class VkBot:
             self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
     def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) < 3:
+            self.invalid_command(event, '/add_connection id_клиента id_автора')
+            return
+
         _, client_id, author_id = (event.obj["message"]["text"].split())
 
         # check if user is admin
