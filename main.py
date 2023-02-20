@@ -146,16 +146,18 @@ class VkBot:
             self.invalid_command(event, '/add_author id_автора')
             return
 
-        _, author_id = (event.obj["message"]["text"].split())
+        _, author_personal_id = (event.obj["message"]["text"].split())
+        author_id = self.vk_session.method(method="users.get", values={"user_ids": author_personal_id})[0]["id"]
 
         # check if user is admin
         if db.user_role_check(event.obj["message"]["from_id"], "admin") and \
                 not db.user_role_check(author_id, "author"):
             db.sql_execute_query(f'INSERT INTO author VALUES ({author_id})')
-            self.echo(message=f'Автор с {author_id} был добавлен!', user_id=event.obj["message"]["from_id"])
+            self.echo(message=f'Автор с {author_personal_id} был добавлен!', user_id=event.obj["message"]["from_id"])
         else:
             if db.user_role_check(event.obj["message"]["from_id"], "admin"):
-                self.echo(message=f'Автор с {author_id} уже существовал!', user_id=event.obj["message"]["from_id"])
+                self.echo(message=f'Автор с {author_personal_id} уже существовал!',
+                          user_id=event.obj["message"]["from_id"])
             else:
                 self.echo(message=f'У вас недостаточно прав для этой команды!',
                           user_id=event.obj["message"]["from_id"])
@@ -173,15 +175,16 @@ class VkBot:
             self.invalid_command(event, '/del_author id_автора')
             return
 
-        _, author_id = (event.obj["message"]["text"].split())
+        _, author_personal_id = (event.obj["message"]["text"].split())
+        author_id = self.vk_session.method(method="users.get", values={"user_ids": author_personal_id})[0]["id"]
 
         # check if user is admin
         if db.user_role_check(event.obj["message"]["from_id"], "admin") and db.user_role_check(author_id, "author"):
             db.sql_execute_query(f'DELETE FROM author WHERE author_id = {author_id}')
-            self.echo(message=f'Автор {author_id} был удален!', user_id=event.obj["message"]["from_id"])
+            self.echo(message=f'Автор {author_personal_id} был удален!', user_id=event.obj["message"]["from_id"])
         else:
             if db.user_role_check(event.obj["message"]["from_id"], "admin"):
-                self.echo(message=f'Автора {author_id} не существует!', user_id=event.obj["message"]["from_id"])
+                self.echo(message=f'Автора {author_personal_id} не существует!', user_id=event.obj["message"]["from_id"])
             else:
                 self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
@@ -190,16 +193,19 @@ class VkBot:
             self.invalid_command(event, '/add_admin id_администратора')
             return
 
-        _, admin_id = (event.obj["message"]["text"].split())
+        _, admin_personal_id = (event.obj["message"]["text"].split())
+        admin_id = self.vk_session.method(method="users.get", values={"user_ids": admin_personal_id})[0]["id"]
 
         # check if user is admin
         if db.user_role_check(event.obj["message"]["from_id"], "admin") and \
                 not db.user_role_check(admin_id, "admin"):
             db.sql_execute_query(f'INSERT INTO admin VALUES ({admin_id})')
-            self.echo(message=f'Администратор {admin_id} был добавлен!', user_id=admin_id)
+            self.echo(message=f'Администратор {admin_personal_id} был добавлен!',
+                      user_id=event.obj["message"]["from_id"])
         else:
             if db.user_role_check(event.obj["message"]["from_id"], "admin"):
-                self.echo(message=f'Администратор {admin_id} уже существует!', user_id=admin_id)
+                self.echo(message=f'Администратор {admin_personal_id} уже существует!',
+                          user_id=event.obj["message"]["from_id"])
             else:
                 self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
@@ -216,15 +222,18 @@ class VkBot:
             self.invalid_command(event, '/del_admin id_администратора')
             return
 
-        _, admin_id = (event.obj["message"]["text"].split())
+        _, admin_personal_id = (event.obj["message"]["text"].split())
+        admin_id = self.vk_session.method(method="users.get", values={"user_ids": admin_personal_id})[0]["id"]
 
         # check if user is admin
         if db.user_role_check(event.obj["message"]["from_id"], "admin") and db.user_role_check(admin_id, "admin"):
             db.sql_execute_query(f'DELETE FROM admin WHERE admin_id = {admin_id}')
-            self.echo(message=f'Администратор {admin_id} был удален!', user_id=admin_id)
+            self.echo(message=f'Администратор {admin_personal_id} был удален!',
+                      user_id=event.obj["message"]["from_id"])
         else:
             if db.user_role_check(event.obj["message"]["from_id"], "admin"):
-                self.echo(message=f'Администратора {admin_id} не существует!', user_id=admin_id)
+                self.echo(message=f'Администратора {admin_personal_id} не существует!',
+                          user_id=event.obj["message"]["from_id"])
             else:
                 self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
@@ -233,13 +242,15 @@ class VkBot:
             self.invalid_command(event, '/add_connection id_клиента id_автора')
             return
 
-        _, client_id, author_id = (event.obj["message"]["text"].split())
+        _, client_personal_id, author_personal_id = (event.obj["message"]["text"].split())
+        client_id = self.vk_session.method(method="users.get", values={"user_ids": client_personal_id})[0]["id"]
+        author_id = self.vk_session.method(method="users.get", values={"user_ids": author_personal_id})[0]["id"]
 
         # TODO: Add handler of unique connection
         # check if user is admin
         if db.user_role_check(event.obj["message"]["from_id"], "admin"):
             db.sql_execute_query(f'INSERT INTO connection(client_id, author_id) VALUES({client_id}, {author_id})')
-            self.echo(message=f'Связь между клиентом: {client_id} и автором: {author_id} установлена!',
+            self.echo(message=f'Связь между клиентом: {client_personal_id} и автором: {author_personal_id} установлена!',
                       user_id=event.obj["message"]["from_id"])
         else:
             self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
@@ -258,12 +269,14 @@ class VkBot:
             self.invalid_command(event, '/add_connection id_клиента id_автора')
             return
 
-        _, client_id, author_id = (event.obj["message"]["text"].split())
+        _, client_personal_id, author_personal_id = (event.obj["message"]["text"].split())
+        client_id = self.vk_session.method(method="users.get", values={"user_ids": client_personal_id})[0]["id"]
+        author_id = self.vk_session.method(method="users.get", values={"user_ids": author_personal_id})[0]["id"]
 
         # check if user is admin
         if db.user_role_check(event.obj["message"]["from_id"], "admin"):
             db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {client_id} AND author_id = {author_id}')
-            self.echo(message='Связь между клиентом: {client_id} и автором: {author_id} прервана!',
+            self.echo(message=f'Связь между клиентом: {client_personal_id} и автором: {author_personal_id} прервана!',
                       user_id=event.obj["message"]["from_id"])
         else:
             self.echo(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
