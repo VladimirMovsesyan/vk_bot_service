@@ -119,26 +119,19 @@ class VkBot:
         # TODO: Add errors handler
         # TODO: DELETE DEBUG INFO
         command = (event.obj["message"]["text"].split())[0]
-        if command == '/add_author':
-            self.add_author(event, db)
-        elif command == '/authors':
-            self.get_authors(event, db)
-        elif command == '/del_author':
-            self.delete_author(event, db)
-        elif command == '/add_admin':
-            self.add_admin(event, db)
-        elif command == '/admins':
-            self.get_admins(event, db)
-        elif command == '/del_admin':
-            self.delete_admin(event, db)
-        elif command == '/add_connection':
-            self.create_connection(event, db)
-        elif command == '/connections':
-            self.get_connections(event, db)
-        elif command == '/del_connection':
-            self.delete_connection(event, db)
-        elif command == '/disconnect':
-            self.disconnect(event, db)
+        commands_dict = {
+            '/add_author': self.add_author,
+            '/authors': self.get_authors,
+            '/del_author': self.delete_author,
+            '/add_admin': self.add_admin,
+            '/admins': self.get_admins,
+            '/del_admin': self.delete_admin,
+            '/add_connection': self.create_connection,
+            '/connections': self.get_connections,
+            '/del_connection': self.delete_connection,
+            '/disconnect': self.disconnect,
+        }
+        commands_dict[command](event, db)
 
     # commands
     def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
