@@ -23,6 +23,10 @@ class VkBot:
             else:
                 print(event.type)
 
+    def get_name_from_id(self, user_id):
+        response = self.vk_session.method(method="users.get", values={"user_ids": user_id})
+        return response[0]['first_name'], response[0]['last_name']
+
     def user_message_handler(self, event: vk_api.bot_longpoll.VkBotMessageEvent) -> None:
         # getting user_id
         user_id = event.obj["message"]["from_id"]
@@ -73,6 +77,9 @@ class VkBot:
             '/add_admin': self.add_admin,
             '/admins': self.get_admins,
             '/del_admin': self.delete_admin,
+            '/req_connection': self.request_connection,
+            '/accept': self.accept_connection,
+            '/decline': self.decline_connection,
             '/add_connection': self.create_connection,
             '/connections': self.get_connections,
             '/del_connection': self.delete_connection,
@@ -87,7 +94,7 @@ class VkBot:
 
     # commands
     def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
-        if len(event.obj["message"]["text"].split()) < 2:
+        if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command(event, '/add_author id_автора')
             return
 
@@ -118,7 +125,7 @@ class VkBot:
                               user_id=event.obj["message"]["from_id"])
 
     def delete_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
-        if len(event.obj["message"]["text"].split()) < 2:
+        if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command(event, '/del_author id_автора')
             return
 
@@ -139,7 +146,7 @@ class VkBot:
                                   user_id=event.obj["message"]["from_id"])
 
     def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
-        if len(event.obj["message"]["text"].split()) < 2:
+        if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command(event, '/add_admin id_администратора')
             return
 
@@ -169,7 +176,7 @@ class VkBot:
             self.send_message(message=f'У вас недостаточно прав!', user_id=event.obj["message"]["from_id"])
 
     def delete_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
-        if len(event.obj["message"]["text"].split()) < 2:
+        if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command(event, '/del_admin id_администратора')
             return
 
@@ -189,8 +196,138 @@ class VkBot:
                 self.send_message(message=f'У вас недостаточно прав!',
                                   user_id=event.obj["message"]["from_id"])
 
+    # TODO: add handling of multiply connection. Validate that only client can request connection
+    def request_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
+        if len(event.obj["message"]["text"].split()) != 2:
+            self.invalid_command(event, '/req_connection id_клиента')
+            return
+
+        _, client_id = event.obj["message"]["text"].split()
+        client_first_name, client_last_name = self.get_name_from_id(client_id)
+        author_id = event.obj["message"]["from_id"]
+        author_first_name, author_last_name = self.get_name_from_id(author_id)
+
+        keyboard = VkKeyboard(one_time=True)
+        keyboard.add_button(
+            label='/disconnect',
+            color=VkKeyboardColor.NEGATIVE
+        )
+        if db.is_connect_requested(client_id):
+            self.forward_message(
+                message='У клиента уже есть активное соединение!',
+                user_id=author_id,
+                keyboard=keyboard.get_keyboard(),
+                attachments=[]
+            )
+            return
+        elif db.is_connect_requested(author_id):
+            self.forward_message(
+                message='У вас уже есть активное соединение!',
+                user_id=author_id,
+                keyboard=keyboard.get_keyboard(),
+                attachments=[]
+            )
+            return
+
+        db.sql_execute_query(
+            f'INSERT INTO connection(client_id, author_id, answered) VALUES({client_id}, {author_id}, 0)')
+        connection_id = db.sql_read_query(
+            f'SELECT connection_id FROM connection WHERE client_id={client_id} AND author_id={author_id}')[0][0]
+
+        admins_id = db.sql_read_query('SELECT admin_id FROM admin')
+        inline_keyboard = VkKeyboard(
+            one_time=False,
+            inline=True
+        )
+        inline_keyboard.add_button(
+            label=f'/accept {connection_id}',
+            color=VkKeyboardColor.POSITIVE,
+        )
+        inline_keyboard.add_button(
+            label=f'/decline {connection_id}',
+            color=VkKeyboardColor.NEGATIVE,
+        )
+        for admin_id in admins_id:
+            self.forward_message(
+                message=f'{author_last_name} {author_first_name} (id{author_id}) запрашивает соединение с \
+                {client_last_name} {client_first_name} (id{client_id}) #{connection_id}',
+                user_id=admin_id,
+                keyboard=inline_keyboard.get_keyboard(),
+                attachments=[]
+            )
+
+    def accept_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase):
+        if len(event.obj["message"]["text"].split()) != 2:
+            self.invalid_command(event, '/accept id_соединения')
+            return
+
+        _, connection_id = event.obj["message"]["text"].split()
+        raw_data = db.sql_read_query(
+            f"SELECT client_id, author_id, answered FROM connection WHERE connection_id = {connection_id}")
+        admin_id = event.obj["message"]["from_id"]
+        if raw_data:
+            client_id, author_id, is_answered = raw_data[0]
+            if is_answered:
+                self.send_message(
+                    message=f"Соединение #{connection_id} уже было одобрено!",
+                    user_id=admin_id
+                )
+
+            else:
+                db.sql_execute_query(f"UPDATE connection SET answered=1 WHERE connection_id = {connection_id}")
+                keyboard = VkKeyboard(one_time=True)
+                keyboard.add_button(
+                    label='/disconnect',
+                    color=VkKeyboardColor.NEGATIVE
+                )
+                self.forward_message(
+                    message=f"Соединение с клиентом было установленно!",
+                    user_id=author_id,
+                    keyboard=keyboard.get_keyboard(),
+                    attachments=[]
+                )
+                self.forward_message(
+                    message=f"Соединение с автором было установленно!",
+                    user_id=client_id,
+                    keyboard=keyboard.get_keyboard(),
+                    attachments=[]
+                )
+        else:
+            self.send_message(
+                message=f"Соединение #{connection_id} неактуально!",
+                user_id=admin_id
+            )
+
+    def decline_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase):
+        if len(event.obj["message"]["text"].split()) != 2:
+            self.invalid_command(event, '/decline id_соединения')
+            return
+
+        _, connection_id = event.obj["message"]["text"].split()
+        raw_data = db.sql_read_query(
+            f"SELECT client_id, author_id, answered FROM connection WHERE connection_id = {connection_id}")
+        admin_id = event.obj["message"]["from_id"]
+        if raw_data:
+            client_id, author_id, is_answered = raw_data[0]
+            if is_answered:
+                self.send_message(
+                    message=f"Соединение #{connection_id} уже было одобрено!",
+                    user_id=admin_id
+                )
+            else:
+                db.sql_execute_query(f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
+                self.send_message(
+                    message=f"Соединение с клиентом было отклонено!",
+                    user_id=author_id,
+                )
+        else:
+            self.send_message(
+                message=f"Соединение #{connection_id} неактуально!",
+                user_id=admin_id
+            )
+
     def create_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
-        if len(event.obj["message"]["text"].split()) < 3:
+        if len(event.obj["message"]["text"].split()) != 3:
             self.invalid_command(event, '/add_connection id_клиента id_автора')
             return
 
@@ -204,7 +341,8 @@ class VkBot:
             keyboard = VkKeyboard(one_time=True)
             keyboard.add_button('/disconnect', VkKeyboardColor.NEGATIVE)
 
-            db.sql_execute_query(f'INSERT INTO connection(client_id, author_id) VALUES({client_id}, {author_id})')
+            db.sql_execute_query(
+                f'INSERT INTO connection(client_id, author_id, answered) VALUES({client_id}, {author_id}, 1)')
 
             self.send_message(message=f'Связь между клиентом: {client_personal_id} и '
                                       f'автором: {author_personal_id} установлена!',
@@ -234,7 +372,7 @@ class VkBot:
                               user_id=event.obj["message"]["from_id"])
 
     def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
-        if len(event.obj["message"]["text"].split()) < 3:
+        if len(event.obj["message"]["text"].split()) != 3:
             self.invalid_command(event, '/add_connection id_клиента id_автора')
             return
 
@@ -253,6 +391,7 @@ class VkBot:
             self.send_message(message=f'У вас недостаточно прав!',
                               user_id=event.obj["message"]["from_id"])
 
+    # TODO: error handle
     def disconnect(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase) -> None:
         db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {event.obj["message"]["from_id"]} OR '
                              f'author_id = {event.obj["message"]["from_id"]}')
