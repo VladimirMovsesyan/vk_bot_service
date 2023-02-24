@@ -9,11 +9,11 @@ from sql import DataBase
 
 
 class VkBot:
-    vk_session: vk_api.vk_api.VkApi
+    vk_session: vk_api.vk_api.VkApiGroup
     long_poll: VkBotLongPoll
 
     def __init__(self, token: str, club_id: str):
-        self.vk_session = vk_api.VkApi(token=token)
+        self.vk_session = vk_api.vk_api.VkApiGroup(token=token)
         self.long_poll = VkBotLongPoll(self.vk_session, club_id)
 
     def process(self) -> None:
