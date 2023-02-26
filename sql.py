@@ -48,9 +48,12 @@ class DataBase:
         return True if self.sql_read_query(f"SELECT client_id, author_id FROM connection WHERE (client_id = {user_id} "
                                            f"OR author_id = {user_id}) AND answered = 1") else False
 
-    def is_connect_requested(self, user_id: int) -> bool:
+    def is_connection_exist(self, user_id: int) -> bool:
         return True if self.sql_read_query(f"SELECT client_id, author_id FROM connection WHERE (client_id = {user_id} "
-                                           f"OR author_id = {user_id}) AND answered = 0") else False
+                                           f"OR author_id = {user_id})") else False
+
+    def is_result_exists(self, query: str):
+        return True if self.sql_read_query(query) else False
 
     def get_companion(self, user_id: int) -> None | int:
         connection = list(
