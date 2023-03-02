@@ -197,7 +197,7 @@ class VkBot:
             return
 
         if db.user_role_check(user.vk_id, "admin") and not db.user_role_check(new_admin.vk_id, "admin"):
-            db.sql_execute_query(f'INSERT INTO admin VALUES ({new_admin})')
+            db.sql_execute_query(f'INSERT INTO admin VALUES ({new_admin.vk_id})')
             self.forward_message(
                 message=f'Администратор {new_admin.personal_id} был добавлен!',
                 user_id=user.vk_id
