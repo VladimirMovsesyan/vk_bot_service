@@ -372,13 +372,13 @@ class VkBot:
                     color=VkKeyboardColor.NEGATIVE
                 )
                 self.forward_message(
-                    message=f"Соединение с клиентом было установленно!",
+                    message=f"💬 Соединение с клиентом было установленно! 💬",
                     user_id=author_id,
                     keyboard=keyboard.get_keyboard(),
                     attachments=[]
                 )
                 self.forward_message(
-                    message=f"Соединение с автором было установленно!",
+                    message=f"💬 Соединение с автором было установленно! 💬",
                     user_id=client_id,
                     keyboard=keyboard.get_keyboard(),
                     attachments=[]
