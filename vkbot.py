@@ -458,7 +458,7 @@ class VkBot:
 
         if self.db.user_role_check(user.vk_id, "admin"):
             if not self.db.is_result_exists(
-                    f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.vk_id} AND author_id = {new_author.vk_id}'):
+                    f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.vk_id} OR author_id = {new_author.vk_id}'):
                 if not self.db.user_role_check(new_client.vk_id, 'user'):
                     self.invalid_command(
                         text='Неверный id клиента!',
@@ -487,9 +487,19 @@ class VkBot:
                                      user_id=new_author.vk_id,
                                      attachments=event.obj["message"]["attachments"])
             else:
-                self.forward_message(message=f'⚠️ Связь между клиентом: {new_client.personal_id} и '
-                                             f'автором: {new_author.personal_id} уже существует! ⚠️',
-                                     user_id=user.vk_id)
+                if self.db.is_connection_exist(new_client.vk_id):
+                    self.forward_message(
+                        message='⚠️ У клиента уже есть активное/запрошенное соединение! ⚠️',
+                        user_id=user.vk_id,
+                    )
+                    return
+
+                if self.db.is_connection_exist(user.vk_id):
+                    self.forward_message(
+                        message='⚠️ У автора уже есть активное/запрошенное соединение! ⚠️',
+                        user_id=user.vk_id,
+                    )
+                    return
         else:
             self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
