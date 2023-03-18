@@ -149,10 +149,16 @@ class VkBot:
     def get_authors(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
             authors_id = self.get_pretty_id(self.db.sql_read_query('SELECT * FROM author'))
-            self.forward_message(
-                message='Список авторов:\n' + ", ".join(authors_id),
-                user_id=user.vk_id
-            )
+            if len(authors_id):
+                self.forward_message(
+                    message='Список авторов:\n' + ", ".join(authors_id),
+                    user_id=user.vk_id
+                )
+            else:
+                self.forward_message(
+                    message='⚠️ Список авторов пуст! ⚠️',
+                    user_id=user.vk_id
+                )
         else:
             self.forward_message(
                 message='⛔️ У вас недостаточно прав! ⛔️',
@@ -241,10 +247,16 @@ class VkBot:
     def get_admins(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
             admins_id = self.get_pretty_id(self.db.sql_read_query('SELECT * FROM admin'))
-            self.forward_message(
-                message='Список администраторов:\n' + ', '.join(admins_id),
-                user_id=user.vk_id,
-            )
+            if len(admins_id):
+                self.forward_message(
+                    message='Список администраторов:\n' + ', '.join(admins_id),
+                    user_id=user.vk_id,
+                )
+            else:
+                self.forward_message(
+                    message='🤯 Проект был сделан компанией MOVTUT inc. 🤯',
+                    user_id=user.vk_id,
+                )
         else:
             self.forward_message(
                 message=f'⛔️ У вас недостаточно прав! ⛔️',
@@ -507,9 +519,13 @@ class VkBot:
     def get_connections(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
             connections_id = self.get_pretty_connections(self.db.sql_read_query('SELECT * FROM connection'))
-            self.forward_message(message='Список установленных соединений:\n' +
-                                         ''.join(connections_id),
-                                 user_id=user.vk_id)
+            if len(connections_id):
+                self.forward_message(message='Список установленных соединений:\n' +
+                                             ''.join(connections_id),
+                                     user_id=user.vk_id)
+            else:
+                self.forward_message(message='⚠️ Нет активных/запрошенных соединений! ⚠️',
+                                     user_id=user.vk_id)
         else:
             self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
@@ -539,12 +555,16 @@ class VkBot:
 
         if self.db.user_role_check(user.vk_id, "admin"):
             if self.db.is_result_exists(
-                    f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.personal_id} AND author_id = {new_author.personal_id}'):
+                    f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.vk_id} AND author_id = {new_author.vk_id}'):
                 self.db.sql_execute_query(
                     f'DELETE FROM connection WHERE client_id = {new_client.vk_id} AND author_id = {new_author.vk_id}')
                 self.forward_message(message=f'🚫 Связь между клиентом: {new_client.personal_id} и '
                                              f'автором: {new_author.personal_id} прервана! 🚫',
                                      user_id=user.vk_id)
+                self.forward_message(message=f'⚠️ Связь с автором прервана! ⚠️',
+                                     user_id=new_client.vk_id)
+                self.forward_message(message=f'⚠️ Связь с клиентом прервана! ⚠️',
+                                     user_id=new_author.vk_id)
             else:
                 self.forward_message(message=f'⚠️ Связи между клиентом: {new_client.personal_id} и '
                                              f'автором: {new_author.personal_id} не существует! ⚠️',
