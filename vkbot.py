@@ -61,7 +61,10 @@ class VkBot:
             db.sql_execute_query(f'INSERT INTO user VALUES ({user.vk_id})')
 
         if event.obj["message"]["text"]:
-            self.user_command_handler(event, db, user)
+            if self.user_command_handler(event, db, user):
+                db.close()
+                return
+
 
         # TODO: add support of forwarding another data from message (such as gifs, docs, music, etc.)
         # forwarding message to other member of dialog if it exists
@@ -76,10 +79,9 @@ class VkBot:
         # closing database connection
         db.close()
 
-    def user_command_handler(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def user_command_handler(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> bool:
         # TODO: Add errors handler
         # TODO: DELETE DEBUG INFO
-        # TODO: Warning: unexpected arguments appears when count of functions more than 10 ????
         command = (event.obj["message"]["text"].split())[0]
         setters = {
             '/add_author': self.add_author,
@@ -94,6 +96,7 @@ class VkBot:
         }
         if command in setters:
             setters[command](event, db, user)
+            return True
 
         getters = {
             '/authors': self.get_authors,
@@ -104,6 +107,9 @@ class VkBot:
 
         if command in getters:
             getters[command](db, user)
+            return True
+
+        return False
 
     def invalid_command(self, text: str, user: User) -> None:
         self.forward_message(message=f'Ошибка: ' + text,
