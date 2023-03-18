@@ -13,9 +13,11 @@ from user import User
 
 class VkBot:
     vk_session: vk_api.vk_api.VkApiGroup
-    long_poll: VkBotLongPoll
+    long_poll:  VkBotLongPoll
+    db:         DataBase | None
 
     def __init__(self, token: str, club_id: str):
+        self.db = None
         self.vk_session = vk_api.vk_api.VkApiGroup(token=token)
         self.long_poll = VkBotLongPoll(self.vk_session, club_id)
 
@@ -54,32 +56,29 @@ class VkBot:
 
     def user_database_handler(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         # creating database connection
-        db = DataBase("localhost", "admin", "vk_bot")
+        self.db = DataBase("localhost", "admin", "vk_bot")
 
         # adding new client to database
-        if not db.user_role_check(user.vk_id, "user"):
-            db.sql_execute_query(f'INSERT INTO user VALUES ({user.vk_id})')
+        if not self.db.user_role_check(user.vk_id, "user"):
+            self.db.sql_execute_query(f'INSERT INTO user VALUES ({user.vk_id})')
 
         if event.obj["message"]["text"]:
-            if self.user_command_handler(event, db, user):
-                db.close()
+            if self.user_command_handler(event, user):
+                self.db.close()
                 return
 
 
         # TODO: add support of forwarding another data from message (such as gifs, docs, music, etc.)
         # forwarding message to other member of dialog if it exists
-        if db.is_connected(user.vk_id):
-            keyboard = VkKeyboard(one_time=False)
-            keyboard.add_button('/disconnect', VkKeyboardColor.NEGATIVE)
+        if self.db.is_connected(user.vk_id):
             self.forward_message(message=event.obj["message"]["text"],
-                                 user_id=db.get_companion(user.vk_id),
-                                 keyboard=keyboard.get_keyboard(),
+                                 user_id=self.db.get_companion(user.vk_id),
                                  attachments=event.obj["message"]["attachments"])
 
         # closing database connection
-        db.close()
+        self.db.close()
 
-    def user_command_handler(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> bool:
+    def user_command_handler(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> bool:
         # TODO: Add errors handler
         # TODO: DELETE DEBUG INFO
         command = (event.obj["message"]["text"].split())[0]
@@ -95,7 +94,7 @@ class VkBot:
             '/del_connection': self.delete_connection,
         }
         if command in setters:
-            setters[command](event, db, user)
+            setters[command](event, user)
             return True
 
         getters = {
@@ -106,7 +105,7 @@ class VkBot:
         }
 
         if command in getters:
-            getters[command](db, user)
+            getters[command](user)
             return True
 
         return False
@@ -116,7 +115,7 @@ class VkBot:
                              user_id=user.vk_id)
 
     # commands
-    def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def add_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/add_author id_автора', user)
             return
@@ -130,14 +129,14 @@ class VkBot:
             )
             return
 
-        if db.user_role_check(user.vk_id, "admin") and not db.user_role_check(new_author.vk_id, "author"):
-            db.sql_execute_query(f'INSERT INTO author VALUES ({new_author.vk_id})')
+        if self.db.user_role_check(user.vk_id, "admin") and not self.db.user_role_check(new_author.vk_id, "author"):
+            self.db.sql_execute_query(f'INSERT INTO author VALUES ({new_author.vk_id})')
             self.forward_message(
                 message=f'Автор с {new_author.personal_id} был добавлен!',
                 user_id=user.vk_id
             )
         else:
-            if db.user_role_check(user.vk_id, "admin"):
+            if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
                     message=f'Автор с {new_author.personal_id} уже существовал!',
                     user_id=user.vk_id
@@ -148,10 +147,10 @@ class VkBot:
                     user_id=user.vk_id
                 )
 
-    def get_authors(self, db: DataBase, user: User) -> None:
-        if db.user_role_check(user.vk_id, "admin"):
+    def get_authors(self, user: User) -> None:
+        if self.db.user_role_check(user.vk_id, "admin"):
             self.forward_message(
-                message='Список авторов:\n' + str(db.sql_read_query('SELECT * FROM author')),
+                message='Список авторов:\n' + str(self.db.sql_read_query('SELECT * FROM author')),
                 user_id=user.vk_id
             )
         else:
@@ -160,7 +159,7 @@ class VkBot:
                 user_id=user.vk_id
             )
 
-    def delete_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def delete_author(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/del_author id_автора', user)
             return
@@ -174,21 +173,21 @@ class VkBot:
             )
             return
 
-        if db.user_role_check(user.vk_id, "admin") and db.user_role_check(new_author.vk_id, "author"):
-            db.sql_execute_query(f'DELETE FROM author WHERE author_id = {new_author.vk_id}')
+        if self.db.user_role_check(user.vk_id, "admin") and self.db.user_role_check(new_author.vk_id, "author"):
+            self.db.sql_execute_query(f'DELETE FROM author WHERE author_id = {new_author.vk_id}')
             self.forward_message(
                 message=f'Автор {new_author.personal_id} был удален!',
                 user_id=user.vk_id
             )
         else:
-            if db.user_role_check(user.vk_id, "admin"):
+            if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(message=f'Автора {new_author.personal_id} не существует!',
                                      user_id=user.vk_id)
             else:
                 self.forward_message(message=f'У вас недостаточно прав!',
                                      user_id=user.vk_id)
 
-    def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/add_admin id_администратора', user)
             return
@@ -202,14 +201,14 @@ class VkBot:
             )
             return
 
-        if db.user_role_check(user.vk_id, "admin") and not db.user_role_check(new_admin.vk_id, "admin"):
-            db.sql_execute_query(f'INSERT INTO admin VALUES ({new_admin.vk_id})')
+        if self.db.user_role_check(user.vk_id, "admin") and not self.db.user_role_check(new_admin.vk_id, "admin"):
+            self.db.sql_execute_query(f'INSERT INTO admin VALUES ({new_admin.vk_id})')
             self.forward_message(
                 message=f'Администратор {new_admin.personal_id} был добавлен!',
                 user_id=user.vk_id
             )
         else:
-            if db.user_role_check(user.vk_id, "admin"):
+            if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
                     message=f'Администратор {new_admin.personal_id} уже существует!',
                     user_id=user.vk_id
@@ -224,9 +223,9 @@ class VkBot:
     def get_pretty_admins(response):
         return list(map(lambda x: f"@id{x[0]} ({x[0]})", response))
 
-    def get_admins(self, db: DataBase, user: User) -> None:
-        if db.user_role_check(user.vk_id, "admin"):
-            admins_id = self.get_pretty_admins(db.sql_read_query('SELECT * FROM admin'))
+    def get_admins(self, user: User) -> None:
+        if self.db.user_role_check(user.vk_id, "admin"):
+            admins_id = self.get_pretty_admins(self.db.sql_read_query('SELECT * FROM admin'))
             self.forward_message(
                 message='Список администраторов:\n' + ' '.join(admins_id),
                 user_id=user.vk_id,
@@ -237,7 +236,7 @@ class VkBot:
                 user_id=user.vk_id
             )
 
-    def delete_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def delete_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/del_admin id_администратора', user)
             return
@@ -251,14 +250,14 @@ class VkBot:
             )
             return
 
-        if db.user_role_check(user.vk_id, "admin") and db.user_role_check(new_admin.vk_id, "admin"):
-            db.sql_execute_query(f'DELETE FROM admin WHERE admin_id = {new_admin.vk_id}')
+        if self.db.user_role_check(user.vk_id, "admin") and self.db.user_role_check(new_admin.vk_id, "admin"):
+            self.db.sql_execute_query(f'DELETE FROM admin WHERE admin_id = {new_admin.vk_id}')
             self.forward_message(
                 message=f'Администратор {new_admin.personal_id} был удален!',
                 user_id=user.vk_id
             )
         else:
-            if db.user_role_check(user.vk_id, "admin"):
+            if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
                     message=f'Администратора {new_admin.personal_id} не существует!',
                     user_id=user.vk_id
@@ -269,12 +268,12 @@ class VkBot:
                     user_id=user.vk_id
                 )
 
-    def request_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def request_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/req_connection id_клиента', user)
             return
 
-        if db.user_role_check(user.vk_id, 'author'):
+        if self.db.user_role_check(user.vk_id, 'author'):
             _, client_id = event.obj["message"]["text"].split()
             new_client = self.create_user(client_id)
             if not new_client:
@@ -284,51 +283,40 @@ class VkBot:
                 )
                 return
 
-            keyboard = VkKeyboard(one_time=False)
-            keyboard.add_button(
-                label='/disconnect',
-                color=VkKeyboardColor.NEGATIVE
-            )
-            if db.is_connection_exist(new_client.vk_id):
+            if self.db.is_connection_exist(new_client.vk_id):
                 self.forward_message(
                     message='У клиента уже есть активное/запрошенное соединение!',
                     user_id=user.vk_id,
-                    keyboard=keyboard.get_empty_keyboard(),
-                    attachments=[]
                 )
                 return
 
-            if db.is_connection_exist(user.vk_id):
+            if self.db.is_connection_exist(user.vk_id):
                 self.forward_message(
                     message='У вас уже есть активное/запрошенное соединение!',
                     user_id=user.vk_id,
-                    keyboard=keyboard.get_keyboard(),
-                    attachments=[]
                 )
                 return
 
-            if not db.user_role_check(new_client.vk_id, 'user'):
+            if not self.db.user_role_check(new_client.vk_id, 'user'):
                 self.invalid_command(
                     text='Неверный id клиента!',
                     user=user
                 )
                 return
 
-            db.sql_execute_query(
+            self.db.sql_execute_query(
                 f'INSERT INTO connection(client_id, author_id, answered) VALUES({new_client.vk_id}, {user.vk_id}, 0)')
 
-            connection_id = db.sql_read_query(
+            connection_id = self.db.sql_read_query(
                 f'SELECT connection_id FROM connection WHERE client_id={new_client.vk_id} AND author_id={user.vk_id}')[
                 0][0]
 
             self.forward_message(
                 message='Запрос на соединение с клиентом отправлен!',
                 user_id=user.vk_id,
-                keyboard=keyboard.get_keyboard(),
-                attachments=[]
             )
 
-            admins_id = db.sql_read_query('SELECT admin_id FROM admin')
+            admins_id = self.db.sql_read_query('SELECT admin_id FROM admin')
             inline_keyboard = VkKeyboard(
                 one_time=False,
                 inline=True
@@ -347,7 +335,6 @@ class VkBot:
                     {new_client.last_name} {new_client.first_name} (id{new_client.vk_id}) #{connection_id}',
                     user_id=admin_id,
                     keyboard=inline_keyboard.get_keyboard(),
-                    attachments=[]
                 )
         else:
             self.forward_message(
@@ -355,13 +342,13 @@ class VkBot:
                 user_id=user.vk_id,
             )
 
-    def accept_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def accept_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/accept id_соединения', user)
             return
 
         _, connection_id = event.obj["message"]["text"].split()
-        raw_data = db.sql_read_query(
+        raw_data = self.db.sql_read_query(
             f"SELECT client_id, author_id, answered FROM connection WHERE connection_id = {connection_id}")
         if raw_data:
             client_id, author_id, is_answered = raw_data[0]
@@ -371,23 +358,14 @@ class VkBot:
                     user_id=user.vk_id
                 )
             else:
-                db.sql_execute_query(f"UPDATE connection SET answered=1 WHERE connection_id = {connection_id}")
-                keyboard = VkKeyboard(one_time=False)
-                keyboard.add_button(
-                    label='/disconnect',
-                    color=VkKeyboardColor.NEGATIVE
-                )
+                self.db.sql_execute_query(f"UPDATE connection SET answered=1 WHERE connection_id = {connection_id}")
                 self.forward_message(
                     message=f"💬 Соединение с клиентом было установленно! 💬",
                     user_id=author_id,
-                    keyboard=keyboard.get_keyboard(),
-                    attachments=[]
                 )
                 self.forward_message(
                     message=f"💬 Соединение с автором было установленно! 💬",
                     user_id=client_id,
-                    keyboard=keyboard.get_keyboard(),
-                    attachments=[]
                 )
         else:
             self.forward_message(
@@ -395,13 +373,13 @@ class VkBot:
                 user_id=user.vk_id
             )
 
-    def decline_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def decline_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/decline id_соединения', user)
             return
 
         _, connection_id = event.obj["message"]["text"].split()
-        raw_data = db.sql_read_query(
+        raw_data = self.db.sql_read_query(
             f"SELECT client_id, author_id, answered FROM connection WHERE connection_id = {connection_id}")
         if raw_data:
             client_id, author_id, is_answered = raw_data[0]
@@ -411,7 +389,7 @@ class VkBot:
                     user_id=user.vk_id
                 )
             else:
-                db.sql_execute_query(f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
+                self.db.sql_execute_query(f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
                 self.forward_message(
                     message=f"Соединение с клиентом было отклонено!",
                     user_id=author_id,
@@ -422,7 +400,7 @@ class VkBot:
                 user_id=user.vk_id
             )
 
-    def create_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def create_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 3:
             self.invalid_command('/add_connection id_клиента id_автора', user)
             return
@@ -444,25 +422,23 @@ class VkBot:
             )
             return
 
-        if db.user_role_check(user.vk_id, "admin"):
-            if not db.is_result_exists(
+        if self.db.user_role_check(user.vk_id, "admin"):
+            if not self.db.is_result_exists(
                     f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.vk_id} AND author_id = {new_author.vk_id}'):
-                keyboard = VkKeyboard(one_time=False)
-                keyboard.add_button('/disconnect', VkKeyboardColor.NEGATIVE)
-                if not db.user_role_check(new_client.vk_id, 'user'):
+                if not self.db.user_role_check(new_client.vk_id, 'user'):
                     self.invalid_command(
                         text='Неверный id клиента!',
                         user=user
                     )
                     return
 
-                if not db.user_role_check(new_author.vk_id, 'author'):
+                if not self.db.user_role_check(new_author.vk_id, 'author'):
                     self.invalid_command(
                         text='Неверный id автора!',
                         user=user
                     )
                     return
-                db.sql_execute_query(
+                self.db.sql_execute_query(
                     f'INSERT INTO connection(client_id, author_id, answered) VALUES({new_client.vk_id}, {new_author.vk_id}, 1)')
 
                 self.forward_message(message=f'Связь между клиентом: {new_client.personal_id} и '
@@ -471,12 +447,10 @@ class VkBot:
 
                 self.forward_message(message='Связь с автором установлена!',
                                      user_id=new_client.vk_id,
-                                     keyboard=keyboard.get_keyboard(),
                                      attachments=event.obj["message"]["attachments"])
 
                 self.forward_message(message='Связь с клиентом установлена!',
                                      user_id=new_author.vk_id,
-                                     keyboard=keyboard.get_keyboard(),
                                      attachments=event.obj["message"]["attachments"])
             else:
                 self.forward_message(message=f'Связь между клиентом: {new_client.personal_id} и '
@@ -486,16 +460,16 @@ class VkBot:
             self.forward_message(message=f'У вас недостаточно прав!',
                                  user_id=user.vk_id)
 
-    def get_connections(self, db: DataBase, user: User) -> None:
-        if db.user_role_check(user.vk_id, "admin"):
+    def get_connections(self, user: User) -> None:
+        if self.db.user_role_check(user.vk_id, "admin"):
             self.forward_message(message='Список установленных соединений:\n' +
-                                         str(db.sql_read_query('SELECT * FROM connection')),
+                                         str(self.db.sql_read_query('SELECT * FROM connection')),
                                  user_id=user.vk_id)
         else:
             self.forward_message(message=f'У вас недостаточно прав!',
                                  user_id=user.vk_id)
 
-    def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, db: DataBase, user: User) -> None:
+    def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if len(event.obj["message"]["text"].split()) != 3:
             self.invalid_command('/del_connection id_клиента id_автора', user)
             return
@@ -518,10 +492,10 @@ class VkBot:
             )
             return
 
-        if db.user_role_check(user.vk_id, "admin"):
-            if db.is_result_exists(
+        if self.db.user_role_check(user.vk_id, "admin"):
+            if self.db.is_result_exists(
                     f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.personal_id} AND author_id = {new_author.personal_id}'):
-                db.sql_execute_query(
+                self.db.sql_execute_query(
                     f'DELETE FROM connection WHERE client_id = {new_client.vk_id} AND author_id = {new_author.vk_id}')
                 self.forward_message(message=f'Связь между клиентом: {new_client.personal_id} и '
                                              f'автором: {new_author.personal_id} прервана!',
@@ -534,10 +508,10 @@ class VkBot:
             self.forward_message(message=f'У вас недостаточно прав!',
                                  user_id=user.vk_id)
 
-    def disconnect(self, db: DataBase, user: User) -> None:
-        if db.is_connection_exist(user.vk_id):
-            companion_id = db.get_companion(user.vk_id)
-            db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {user.vk_id} OR '
+    def disconnect(self, user: User) -> None:
+        if self.db.is_connection_exist(user.vk_id):
+            companion_id = self.db.get_companion(user.vk_id)
+            self.db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {user.vk_id} OR '
                                  f'author_id = {user.vk_id}')
             self.forward_message('Вы отключились от чата!',
                                  user_id=user.vk_id)
@@ -559,6 +533,12 @@ class VkBot:
             f'_{attach[attach["type"]]["access_key"]}'
             for attach in attachments
         ]
+
+        if self.db.is_connected(user_id):
+            kb = VkKeyboard(one_time=False)
+            kb.add_button(label="/disconnect", color=VkKeyboardColor.NEGATIVE)
+            keyboard = kb.get_keyboard()
+
         self.vk_session.get_api().messages.send(
             user_id=user_id,
             random_id=get_random_id(),
