@@ -219,16 +219,24 @@ class VkBot:
                     user_id=user.vk_id
                 )
 
-    @staticmethod
-    def get_pretty_id(response):
-        return list(map(lambda x:  f"@id{x[0]} ({x[0]})", response))
+    def get_pretty_id(self, response):
+        result = []
+        for val in response:
+            user = self.create_user(val[0])
+            result.append(f"@id{user.vk_id} ({user.first_name} {user.last_name})")
+        return result
 
-    @staticmethod
-    def get_pretty_connections(response):
-        answer = []
-        for val in response[:]:
-            answer.append(f"Соединение #{val[0]}\n✏️ Автор: @id{val[1]} ({val[1]})\n👔 Клиент: @id{val[2]} ({val[2]})\n")
-        return answer
+    def get_pretty_connections(self, response):
+        result = []
+        for val in response:
+            client = self.create_user(val[1])
+            author = self.create_user(val[2])
+            result.append(
+                f"Соединение #{val[0]}\n\
+            👔 Клиент: @id{client.vk_id} ({client.first_name} {client.last_name})\n\
+            ✏️ Автор: @id{author.vk_id} ({author.first_name} {author.last_name})\n"
+            )
+        return result
 
     def get_admins(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
@@ -350,6 +358,11 @@ class VkBot:
             )
 
     def accept_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
+        if not self.db.user_role_check(user.vk_id, "admin"):
+            self.forward_message(message=f'У вас недостаточно прав!',
+                                 user_id=user.vk_id)
+            return
+
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/accept id_соединения', user)
             return
@@ -381,6 +394,11 @@ class VkBot:
             )
 
     def decline_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
+        if not self.db.user_role_check(user.vk_id, "admin"):
+            self.forward_message(message=f'У вас недостаточно прав!',
+                                 user_id=user.vk_id)
+            return
+
         if len(event.obj["message"]["text"].split()) != 2:
             self.invalid_command('/decline id_соединения', user)
             return
@@ -522,9 +540,9 @@ class VkBot:
             companion_id = self.db.get_companion(user.vk_id)
             self.db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {user.vk_id} OR '
                                       f'author_id = {user.vk_id}')
-            self.forward_message('Вы отключились от чата!',
+            self.forward_message('🚫 Вы отключились от чата! 🚫',
                                  user_id=user.vk_id)
-            self.forward_message('Собеседник отключился от чата!',
+            self.forward_message('🚫 Собеседник отключился от чата! 🚫',
                                  user_id=companion_id)
         else:
             self.forward_message('Вы не подключены к чату!',
