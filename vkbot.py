@@ -110,7 +110,7 @@ class VkBot:
         return False
 
     def invalid_command(self, text: str, user: User) -> None:
-        self.forward_message(message=f'Ошибка: ' + text,
+        self.forward_message(message=f'⛔️ Ошибка: ' + text + ' ⛔️',
                              user_id=user.vk_id)
 
     # commands
@@ -131,18 +131,18 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and not self.db.user_role_check(new_author.vk_id, "author"):
             self.db.sql_execute_query(f'INSERT INTO author VALUES ({new_author.vk_id})')
             self.forward_message(
-                message=f'Автор с {new_author.personal_id} был добавлен!',
+                message=f'✅ Автор с {new_author.personal_id} был добавлен! ✅',
                 user_id=user.vk_id
             )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
-                    message=f'Автор с {new_author.personal_id} уже существовал!',
+                    message=f'⚠️ Автор с {new_author.personal_id} уже существовал! ⚠️',
                     user_id=user.vk_id
                 )
             else:
                 self.forward_message(
-                    message=f'У вас недостаточно прав для этой команды!',
+                    message=f'⛔️ У вас недостаточно прав для этой команды! ⛔️',
                     user_id=user.vk_id
                 )
 
@@ -155,7 +155,7 @@ class VkBot:
             )
         else:
             self.forward_message(
-                message='У вас недостаточно прав для этой команды!',
+                message='⛔️ У вас недостаточно прав! ⛔️',
                 user_id=user.vk_id
             )
 
@@ -176,15 +176,15 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and self.db.user_role_check(new_author.vk_id, "author"):
             self.db.sql_execute_query(f'DELETE FROM author WHERE author_id = {new_author.vk_id}')
             self.forward_message(
-                message=f'Автор {new_author.personal_id} был удален!',
+                message=f'✅ Автор {new_author.personal_id} был удален! ✅',
                 user_id=user.vk_id
             )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
-                self.forward_message(message=f'Автора {new_author.personal_id} не существует!',
+                self.forward_message(message=f'⚠️ Автора {new_author.personal_id} не существует! ⚠️',
                                      user_id=user.vk_id)
             else:
-                self.forward_message(message=f'У вас недостаточно прав!',
+                self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                      user_id=user.vk_id)
 
     def add_admin(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
@@ -204,18 +204,18 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and not self.db.user_role_check(new_admin.vk_id, "admin"):
             self.db.sql_execute_query(f'INSERT INTO admin VALUES ({new_admin.vk_id})')
             self.forward_message(
-                message=f'Администратор {new_admin.personal_id} был добавлен!',
+                message=f'✅ Администратор {new_admin.personal_id} был добавлен! ✅',
                 user_id=user.vk_id
             )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
-                    message=f'Администратор {new_admin.personal_id} уже существует!',
+                    message=f'⚠️ Администратор {new_admin.personal_id} уже существует! ⚠️',
                     user_id=user.vk_id
                 )
             else:
                 self.forward_message(
-                    message=f'У вас недостаточно прав!',
+                    message=f'⛔️ У вас недостаточно прав! ⛔️',
                     user_id=user.vk_id
                 )
 
@@ -247,7 +247,7 @@ class VkBot:
             )
         else:
             self.forward_message(
-                message=f'У вас недостаточно прав!',
+                message=f'⛔️ У вас недостаточно прав! ⛔️',
                 user_id=user.vk_id
             )
 
@@ -268,18 +268,18 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and self.db.user_role_check(new_admin.vk_id, "admin"):
             self.db.sql_execute_query(f'DELETE FROM admin WHERE admin_id = {new_admin.vk_id}')
             self.forward_message(
-                message=f'Администратор {new_admin.personal_id} был удален!',
+                message=f'✅ Администратор {new_admin.personal_id} был удален! ✅',
                 user_id=user.vk_id
             )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
-                    message=f'Администратора {new_admin.personal_id} не существует!',
+                    message=f'⚠️ Администратора {new_admin.personal_id} не существует! ⚠️',
                     user_id=user.vk_id
                 )
             else:
                 self.forward_message(
-                    message=f'У вас недостаточно прав!',
+                    message=f'⛔️ У вас недостаточно прав! ⛔️',
                     user_id=user.vk_id
                 )
 
@@ -300,14 +300,14 @@ class VkBot:
 
             if self.db.is_connection_exist(new_client.vk_id):
                 self.forward_message(
-                    message='У клиента уже есть активное/запрошенное соединение!',
+                    message='⚠️ У клиента уже есть активное/запрошенное соединение! ⚠️',
                     user_id=user.vk_id,
                 )
                 return
 
             if self.db.is_connection_exist(user.vk_id):
                 self.forward_message(
-                    message='У вас уже есть активное/запрошенное соединение!',
+                    message='⚠️ У вас уже есть активное/запрошенное соединение! ⚠️',
                     user_id=user.vk_id,
                 )
                 return
@@ -327,7 +327,7 @@ class VkBot:
                 0][0]
 
             self.forward_message(
-                message='Запрос на соединение с клиентом отправлен!',
+                message='✉️ Запрос на соединение с клиентом отправлен! ✉️',
                 user_id=user.vk_id,
             )
 
@@ -353,13 +353,13 @@ class VkBot:
                 )
         else:
             self.forward_message(
-                message='Только автор может запросить соединение!',
+                message='⚠️ Только автор может запросить соединение! ⚠️',
                 user_id=user.vk_id,
             )
 
     def accept_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if not self.db.user_role_check(user.vk_id, "admin"):
-            self.forward_message(message=f'У вас недостаточно прав!',
+            self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
             return
 
@@ -374,7 +374,7 @@ class VkBot:
             client_id, author_id, is_answered = raw_data[0]
             if is_answered:
                 self.forward_message(
-                    message=f"Соединение #{connection_id} уже было одобрено!",
+                    message=f"⚠️ Соединение #{connection_id} уже было одобрено! ⚠️",
                     user_id=user.vk_id
                 )
             else:
@@ -389,13 +389,13 @@ class VkBot:
                 )
         else:
             self.forward_message(
-                message=f"Соединение #{connection_id} неактуально!",
+                message=f"⚠️ Соединение #{connection_id} неактуально! ⚠️",
                 user_id=user.vk_id
             )
 
     def decline_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
         if not self.db.user_role_check(user.vk_id, "admin"):
-            self.forward_message(message=f'У вас недостаточно прав!',
+            self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
             return
 
@@ -410,19 +410,19 @@ class VkBot:
             client_id, author_id, is_answered = raw_data[0]
             if is_answered:
                 self.forward_message(
-                    message=f"Соединение #{connection_id} уже было одобрено!",
+                    message=f"⚠️ Соединение #{connection_id} уже было одобрено! ⚠️",
                     user_id=user.vk_id
                 )
             else:
                 self.db.sql_execute_query(
                     f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
                 self.forward_message(
-                    message=f"Соединение с клиентом было отклонено!",
+                    message=f"❌ Соединение с клиентом было отклонено! ❌",
                     user_id=author_id,
                 )
         else:
             self.forward_message(
-                message=f"Соединение #{connection_id} неактуально!",
+                message=f"⚠️ Соединение #{connection_id} неактуально! ⚠️",
                 user_id=user.vk_id
             )
 
@@ -467,23 +467,23 @@ class VkBot:
                 self.db.sql_execute_query(
                     f'INSERT INTO connection(client_id, author_id, answered) VALUES({new_client.vk_id}, {new_author.vk_id}, 1)')
 
-                self.forward_message(message=f'Связь между клиентом: {new_client.personal_id} и '
-                                             f'автором: {new_author.personal_id} установлена!',
+                self.forward_message(message=f'✅ Связь между клиентом: {new_client.personal_id} и '
+                                             f'автором: {new_author.personal_id} установлена! ✅',
                                      user_id=user.vk_id)
 
-                self.forward_message(message='Связь с автором установлена!',
+                self.forward_message(message='✅ Связь с автором установлена! ✅',
                                      user_id=new_client.vk_id,
                                      attachments=event.obj["message"]["attachments"])
 
-                self.forward_message(message='Связь с клиентом установлена!',
+                self.forward_message(message='✅ Связь с клиентом установлена! ✅',
                                      user_id=new_author.vk_id,
                                      attachments=event.obj["message"]["attachments"])
             else:
-                self.forward_message(message=f'Связь между клиентом: {new_client.personal_id} и '
-                                             f'автором: {new_author.personal_id} уже существует!',
+                self.forward_message(message=f'⚠️ Связь между клиентом: {new_client.personal_id} и '
+                                             f'автором: {new_author.personal_id} уже существует! ⚠️',
                                      user_id=user.vk_id)
         else:
-            self.forward_message(message=f'У вас недостаточно прав!',
+            self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
 
     def get_connections(self, user: User) -> None:
@@ -493,7 +493,7 @@ class VkBot:
                                          ''.join(connections_id),
                                  user_id=user.vk_id)
         else:
-            self.forward_message(message=f'У вас недостаточно прав!',
+            self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
 
     def delete_connection(self, event: vk_api.bot_longpoll.VkBotMessageEvent, user: User) -> None:
@@ -524,15 +524,15 @@ class VkBot:
                     f'SELECT client_id, author_id FROM connection WHERE client_id = {new_client.personal_id} AND author_id = {new_author.personal_id}'):
                 self.db.sql_execute_query(
                     f'DELETE FROM connection WHERE client_id = {new_client.vk_id} AND author_id = {new_author.vk_id}')
-                self.forward_message(message=f'Связь между клиентом: {new_client.personal_id} и '
-                                             f'автором: {new_author.personal_id} прервана!',
+                self.forward_message(message=f'🚫 Связь между клиентом: {new_client.personal_id} и '
+                                             f'автором: {new_author.personal_id} прервана! 🚫',
                                      user_id=user.vk_id)
             else:
-                self.forward_message(message=f'Связи между клиентом: {new_client.personal_id} и '
-                                             f'автором: {new_author.personal_id} не существует!',
+                self.forward_message(message=f'⚠️ Связи между клиентом: {new_client.personal_id} и '
+                                             f'автором: {new_author.personal_id} не существует! ⚠️',
                                      user_id=user.vk_id)
         else:
-            self.forward_message(message=f'У вас недостаточно прав!',
+            self.forward_message(message=f'⛔️ У вас недостаточно прав! ⛔️',
                                  user_id=user.vk_id)
 
     def disconnect(self, user: User) -> None:
@@ -545,7 +545,7 @@ class VkBot:
             self.forward_message('🚫 Собеседник отключился от чата! 🚫',
                                  user_id=companion_id)
         else:
-            self.forward_message('Вы не подключены к чату!',
+            self.forward_message('❌ Вы не подключены к чату! ❌',
                                  user_id=user.vk_id)
 
     def forward_message(self, message: str, user_id: int, keyboard=VkKeyboard().get_empty_keyboard(),
