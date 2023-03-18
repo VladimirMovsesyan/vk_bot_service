@@ -232,9 +232,9 @@ class VkBot:
             client = self.create_user(val[1])
             author = self.create_user(val[2])
             result.append(
-                f"Соединение #{val[0]}\n\
-            👔 Клиент: @id{client.vk_id} ({client.first_name} {client.last_name})\n\
-            ✏️ Автор: @id{author.vk_id} ({author.first_name} {author.last_name})\n"
+                f"Соединение #{val[0]}\n"
+                f"👔 Клиент: @id{client.vk_id} ({client.first_name} {client.last_name})\n"
+                f"✏️ Автор: @id{author.vk_id} ({author.first_name} {author.last_name})\n"
             )
         return result
 
@@ -346,8 +346,8 @@ class VkBot:
             )
             for admin_id in admins_id:
                 self.forward_message(
-                    message=f'{user.last_name} {user.first_name} (id{user.vk_id}) запрашивает соединение с \
-                    {new_client.last_name} {new_client.first_name} (id{new_client.vk_id}) #{connection_id}',
+                    message=f'❓ Запрос на соединение #{connection_id}:\n@id{user.vk_id} ({user.first_name} {user.last_name}) запрашивает соединение с'
+                            f' @id{new_client.vk_id} ({new_client.first_name} {new_client.last_name})!',
                     user_id=admin_id,
                     keyboard=inline_keyboard.get_keyboard(),
                 )
@@ -387,6 +387,10 @@ class VkBot:
                     message=f"💬 Соединение с автором было установленно! 💬",
                     user_id=client_id,
                 )
+                self.forward_message(
+                    message=f"✅ Соединение было одобрено! ✅",
+                    user_id=user.vk_id,
+                )
         else:
             self.forward_message(
                 message=f"⚠️ Соединение #{connection_id} неактуально! ⚠️",
@@ -416,6 +420,10 @@ class VkBot:
             else:
                 self.db.sql_execute_query(
                     f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
+                self.forward_message(
+                    message=f"❌ Соединение было отклонено! ❌",
+                    user_id=user.vk_id,
+                )
                 self.forward_message(
                     message=f"❌ Соединение с клиентом было отклонено! ❌",
                     user_id=author_id,
@@ -538,12 +546,16 @@ class VkBot:
     def disconnect(self, user: User) -> None:
         if self.db.is_connection_exist(user.vk_id):
             companion_id = self.db.get_companion(user.vk_id)
+            is_answered = self.db.sql_read_query(
+                f'SELECT answered FROM connection WHERE client_id = {user.vk_id} OR author_id = {user.vk_id}'
+            )[0][0]
             self.db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {user.vk_id} OR '
                                       f'author_id = {user.vk_id}')
             self.forward_message('🚫 Вы отключились от чата! 🚫',
                                  user_id=user.vk_id)
-            self.forward_message('🚫 Собеседник отключился от чата! 🚫',
-                                 user_id=companion_id)
+            if is_answered:
+                self.forward_message('🚫 Собеседник отключился от чата! 🚫',
+                                     user_id=companion_id)
         else:
             self.forward_message('❌ Вы не подключены к чату! ❌',
                                  user_id=user.vk_id)
@@ -561,7 +573,7 @@ class VkBot:
             for attach in attachments
         ]
 
-        if self.db.is_connected(user_id):
+        if self.db.is_connection_exist(user_id):
             kb = VkKeyboard(one_time=False)
             kb.add_button(label="/disconnect", color=VkKeyboardColor.NEGATIVE)
             keyboard = kb.get_keyboard()
