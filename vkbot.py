@@ -214,11 +214,16 @@ class VkBot:
                     user_id=user.vk_id
                 )
 
+    @staticmethod
+    def get_pretty_admins(response):
+        return list(map(lambda x: f"@id{x[0]} ({x[0]})", response))
+
     def get_admins(self, db: DataBase, user: User) -> None:
         if db.user_role_check(user.vk_id, "admin"):
+            admins_id = self.get_pretty_admins(db.sql_read_query('SELECT * FROM admin'))
             self.forward_message(
-                message='Список администраторов:\n' + str(db.sql_read_query('SELECT * FROM admin')),
-                user_id=user.vk_id
+                message='Список администраторов:\n' + ' '.join(admins_id),
+                user_id=user.vk_id,
             )
         else:
             self.forward_message(
