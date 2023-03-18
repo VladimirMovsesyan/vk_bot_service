@@ -13,8 +13,8 @@ from user import User
 
 class VkBot:
     vk_session: vk_api.vk_api.VkApiGroup
-    long_poll:  VkBotLongPoll
-    db:         DataBase | None
+    long_poll: VkBotLongPoll
+    db: DataBase | None
 
     def __init__(self, token: str, club_id: str):
         self.db = None
@@ -66,7 +66,6 @@ class VkBot:
             if self.user_command_handler(event, user):
                 self.db.close()
                 return
-
 
         # TODO: add support of forwarding another data from message (such as gifs, docs, music, etc.)
         # forwarding message to other member of dialog if it exists
@@ -149,8 +148,9 @@ class VkBot:
 
     def get_authors(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
+            authors_id = self.get_pretty_id(self.db.sql_read_query('SELECT * FROM author'))
             self.forward_message(
-                message='Список авторов:\n' + str(self.db.sql_read_query('SELECT * FROM author')),
+                message='Список авторов:\n' + ", ".join(authors_id),
                 user_id=user.vk_id
             )
         else:
@@ -220,14 +220,21 @@ class VkBot:
                 )
 
     @staticmethod
-    def get_pretty_admins(response):
-        return list(map(lambda x: f"@id{x[0]} ({x[0]})", response))
+    def get_pretty_id(response):
+        return list(map(lambda x:  f"@id{x[0]} ({x[0]})", response))
+
+    @staticmethod
+    def get_pretty_connections(response):
+        answer = []
+        for val in response[:]:
+            answer.append(f"Соединение #{val[0]}\n✏️ Автор: @id{val[1]} ({val[1]})\n👔 Клиент: @id{val[2]} ({val[2]})\n")
+        return answer
 
     def get_admins(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
-            admins_id = self.get_pretty_admins(self.db.sql_read_query('SELECT * FROM admin'))
+            admins_id = self.get_pretty_id(self.db.sql_read_query('SELECT * FROM admin'))
             self.forward_message(
-                message='Список администраторов:\n' + ' '.join(admins_id),
+                message='Список администраторов:\n' + ', '.join(admins_id),
                 user_id=user.vk_id,
             )
         else:
@@ -389,7 +396,8 @@ class VkBot:
                     user_id=user.vk_id
                 )
             else:
-                self.db.sql_execute_query(f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
+                self.db.sql_execute_query(
+                    f"DELETE FROM connection WHERE connection_id={connection_id} AND answered = 0")
                 self.forward_message(
                     message=f"Соединение с клиентом было отклонено!",
                     user_id=author_id,
@@ -462,8 +470,9 @@ class VkBot:
 
     def get_connections(self, user: User) -> None:
         if self.db.user_role_check(user.vk_id, "admin"):
+            connections_id = self.get_pretty_connections(self.db.sql_read_query('SELECT * FROM connection'))
             self.forward_message(message='Список установленных соединений:\n' +
-                                         str(self.db.sql_read_query('SELECT * FROM connection')),
+                                         ''.join(connections_id),
                                  user_id=user.vk_id)
         else:
             self.forward_message(message=f'У вас недостаточно прав!',
@@ -512,7 +521,7 @@ class VkBot:
         if self.db.is_connection_exist(user.vk_id):
             companion_id = self.db.get_companion(user.vk_id)
             self.db.sql_execute_query(f'DELETE FROM connection WHERE client_id = {user.vk_id} OR '
-                                 f'author_id = {user.vk_id}')
+                                      f'author_id = {user.vk_id}')
             self.forward_message('Вы отключились от чата!',
                                  user_id=user.vk_id)
             self.forward_message('Собеседник отключился от чата!',
