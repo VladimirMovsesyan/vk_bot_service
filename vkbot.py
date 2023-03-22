@@ -131,7 +131,7 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and not self.db.user_role_check(new_author.vk_id, "author"):
             self.db.sql_execute_query(f'INSERT INTO author VALUES ({new_author.vk_id})')
             self.forward_message(
-                message=f'✅ Автор с {new_author.personal_id} был добавлен! ✅',
+                message=f'✅ Автор @id{new_author.vk_id} ({new_author.first_name} {new_author.last_name}) был добавлен! ✅',
                 user_id=user.vk_id
             )
             self.forward_message(
@@ -141,7 +141,7 @@ class VkBot:
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
-                    message=f'⚠️ Автор с {new_author.personal_id} уже существовал! ⚠️',
+                    message=f'⚠️ Автор @id{new_author.vk_id} ({new_author.first_name} {new_author.last_name}) уже существовал! ⚠️',
                     user_id=user.vk_id
                 )
             else:
@@ -186,7 +186,7 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and self.db.user_role_check(new_author.vk_id, "author"):
             self.db.sql_execute_query(f'DELETE FROM author WHERE author_id = {new_author.vk_id}')
             self.forward_message(
-                message=f'✅ Автор {new_author.personal_id} был удален! ✅',
+                message=f'✅ Автор @id{new_author.vk_id} ({new_author.first_name} {new_author.last_name}) был удален! ✅',
                 user_id=user.vk_id
             )
             self.forward_message(
@@ -218,7 +218,7 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and not self.db.user_role_check(new_admin.vk_id, "admin"):
             self.db.sql_execute_query(f'INSERT INTO admin VALUES ({new_admin.vk_id})')
             self.forward_message(
-                message=f'✅ Администратор {new_admin.personal_id} был добавлен! ✅',
+                message=f'✅ Администратор @id{new_admin.vk_id} ({new_admin.first_name} {new_admin.last_name}) был добавлен! ✅',
                 user_id=user.vk_id
             )
             self.forward_message(
@@ -228,7 +228,7 @@ class VkBot:
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
-                    message=f'⚠️ Администратор {new_admin.personal_id} уже существует! ⚠️',
+                    message=f'⚠️ Администратор @id{new_admin.vk_id} ({new_admin.first_name} {new_admin.last_name}) уже существует! ⚠️',
                     user_id=user.vk_id
                 )
             else:
@@ -292,7 +292,7 @@ class VkBot:
         if self.db.user_role_check(user.vk_id, "admin") and self.db.user_role_check(new_admin.vk_id, "admin"):
             self.db.sql_execute_query(f'DELETE FROM admin WHERE admin_id = {new_admin.vk_id}')
             self.forward_message(
-                message=f'✅ Администратор {new_admin.personal_id} был удален! ✅',
+                message=f'✅ Администратор @id{new_admin.vk_id} ({new_admin.first_name} {new_admin.last_name}) был удален! ✅',
                 user_id=user.vk_id
             )
             self.forward_message(
