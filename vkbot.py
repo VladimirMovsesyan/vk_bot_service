@@ -134,6 +134,10 @@ class VkBot:
                 message=f'✅ Автор с {new_author.personal_id} был добавлен! ✅',
                 user_id=user.vk_id
             )
+            self.forward_message(
+                message=f'✅ Вы были добавлены в список авторов! ✅',
+                user_id=new_author.vk_id
+            )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(
@@ -185,6 +189,10 @@ class VkBot:
                 message=f'✅ Автор {new_author.personal_id} был удален! ✅',
                 user_id=user.vk_id
             )
+            self.forward_message(
+                message=f'⚠️ Вас исключили из списка авторов! ⚠️',
+                user_id=new_author.vk_id
+            )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
                 self.forward_message(message=f'⚠️ Автора {new_author.personal_id} не существует! ⚠️',
@@ -212,6 +220,10 @@ class VkBot:
             self.forward_message(
                 message=f'✅ Администратор {new_admin.personal_id} был добавлен! ✅',
                 user_id=user.vk_id
+            )
+            self.forward_message(
+                message=f'✅ Вы были добавлены в список администраторов! ✅',
+                user_id=new_admin.vk_id
             )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
@@ -282,6 +294,10 @@ class VkBot:
             self.forward_message(
                 message=f'✅ Администратор {new_admin.personal_id} был удален! ✅',
                 user_id=user.vk_id
+            )
+            self.forward_message(
+                message=f'⚠️ Вас исключили из списков администраторов! ⚠️',
+                user_id=new_admin.vk_id
             )
         else:
             if self.db.user_role_check(user.vk_id, "admin"):
