@@ -613,11 +613,18 @@ class VkBot:
 
         print('message', message)
 
-        attachment = [
-            f'{attach["type"]}{attach[attach["type"]]["owner_id"]}_{attach[attach["type"]]["id"]}' +
-            f'_{attach[attach["type"]]["access_key"]}'
-            for attach in attachments
-        ]
+        attachment = []
+
+        for attach in attachments:
+            if attach["type"] != "photo":
+                continue
+            attachment.append(
+                f'{attach["type"]}{attach[attach["type"]]["owner_id"]}_{attach[attach["type"]]["id"]}' +
+                f'_{attach[attach["type"]]["access_key"]}'
+            )
+
+        if not attachment and not message:
+            return
 
         if self.db.is_connection_exist(user_id):
             kb = VkKeyboard(one_time=False)
