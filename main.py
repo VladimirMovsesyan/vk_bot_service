@@ -17,7 +17,7 @@ def main():
     try:
         vk_bot.process()
     except KeyboardInterrupt:
-        print("process interrupted")
+        print("Process interrupted!")
 
 
 if __name__ == '__main__':
