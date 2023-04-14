@@ -610,24 +610,38 @@ class VkBot:
                         attachments=None) -> None:
         if attachments is None:
             attachments = []
-
-        print('message', message)
+        flag = False
 
         attachment = [
             f'{attach["type"]}{attach[attach["type"]]["owner_id"]}_{attach[attach["type"]]["id"]}' +
             f'_{attach[attach["type"]]["access_key"]}'
             for attach in attachments
+            if attach["type"] == "photo"
         ]
+
+        for attach in attachments:
+            if attach["type"] != "photo":
+                flag = True
+                break
 
         if self.db.is_connection_exist(user_id):
             kb = VkKeyboard(one_time=False)
             kb.add_button(label="/disconnect", color=VkKeyboardColor.NEGATIVE)
             keyboard = kb.get_keyboard()
 
-        self.vk_session.get_api().messages.send(
-            user_id=user_id,
-            random_id=get_random_id(),
-            keyboard=keyboard,
-            message=message,
-            attachment=attachment
-        )
+        if attachment or message:
+            self.vk_session.get_api().messages.send(
+                user_id=user_id,
+                random_id=get_random_id(),
+                keyboard=keyboard,
+                message=message,
+                attachment=attachment
+            )
+
+        if flag and (self.db.user_role_check(user_id, "author") or self.db.user_role_check(user_id, "admin")):
+            self.vk_session.get_api().messages.send(
+                user_id=user_id,
+                random_id=get_random_id(),
+                keyboard=keyboard,
+                message='⚠️ Клиент пытается отправить неподдерживаемые файлы! ⚠️',
+            )

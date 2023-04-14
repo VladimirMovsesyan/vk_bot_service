@@ -14,7 +14,10 @@ def main():
 
     # creating vk_bot
     vk_bot = VkBot(TOKEN, CLUB_ID)
-    vk_bot.process()
+    try:
+        vk_bot.process()
+    except KeyboardInterrupt:
+        print("Process interrupted!")
 
 
 if __name__ == '__main__':
