@@ -1,3 +1,5 @@
+import datetime
+
 # store secret keys
 from dotenv import load_dotenv
 import os
@@ -18,6 +20,10 @@ def main():
         vk_bot.process()
     except KeyboardInterrupt:
         print("Process interrupted!")
+    except Exception as e:
+        with open("bot.log", "a") as file:
+            print(f"Bot crashed at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", file=file)
+            print(f"Error: {e}", file=file)
 
 
 if __name__ == '__main__':
