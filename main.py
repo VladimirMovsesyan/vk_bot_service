@@ -24,6 +24,7 @@ def main():
         with open("bot.log", "a") as file:
             print(f"Bot crashed at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", file=file)
             print(f"Error: {e}", file=file)
+        exit(1)
 
 
 if __name__ == '__main__':

@@ -12,3 +12,15 @@
 
 # pycache
 __pycache__/
+
+# requirements
+requirements.txt
+
+# scripts
+*.sh
+
+# Makefile
+Makefile
+
+# sql dumps
+*.sql
